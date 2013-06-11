@@ -98,17 +98,20 @@
 ;; if need to customize amt of ports more, can use add-supervisor calls afterwards
 (defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {} :inimbus nil]
   (let [zk-tmp (local-temp-path)
-        [zk-port zk-handle] (zk/mk-inprocess-zookeeper zk-tmp)
+        [zk-port zk-handle] (if (daemon-conf STORM-LOCAL-MODE-EMBEDDED-ZOOKEEPER)
+                                (zk/mk-inprocess-zookeeper zk-tmp)
+                                [(daemon-conf STORM-ZOOKEEPER-PORT) nil])
         daemon-conf (merge (read-storm-config)
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
                             TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false
                             TOPOLOGY-TRIDENT-BATCH-EMIT-INTERVAL-MILLIS 50
+                            STORM-ZOOKEEPER-PORT zk-port
+                            STORM-ZOOKEEPER-SERVERS ["localhost"]
                             }
                            daemon-conf
                            {STORM-CLUSTER-MODE "local"
-                            STORM-ZOOKEEPER-PORT zk-port
-                            STORM-ZOOKEEPER-SERVERS ["localhost"]})
+                            })
         nimbus-tmp (local-temp-path)
         port-counter (mk-counter)
         nimbus (nimbus/service-handler
@@ -156,9 +159,10 @@
     ;; race condition here? will it launch the workers again?
     (supervisor/kill-supervisor s))
   (psim/kill-all-processes)
-  (log-message "Shutting down in process zookeeper")
-  (zk/shutdown-inprocess-zookeeper (:zookeeper cluster-map))
-  (log-message "Done shutting down in process zookeeper")
+  (if (:zookeeper cluster-map)
+    ((log-message "Shutting down in process zookeeper")
+     (zk/shutdown-inprocess-zookeeper (:zookeeper cluster-map))
+     (log-message "Done shutting down in process zookeeper")))
   (doseq [t @(:tmp-dirs cluster-map)]
     (log-message "Deleting temporary path " t)
     (rmr t)
@@ -218,7 +222,7 @@
        (try
          ~@body
        (finally
-         (zk/shutdown-inprocess-zookeeper zks#)
+         (if zks# (zk/shutdown-inprocess-zookeeper zks#))
          ))
        )))
 

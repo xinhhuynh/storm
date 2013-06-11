@@ -75,6 +75,15 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_LOCAL_MODE_ZMQ = "storm.local.mode.zmq";
 
     /**
+     * Whether or not to use embedded Zookeeper in local mode. If this is set to
+     * false, then an external Zookeeper at STORM_ZOOKEEPER_SERVERS and STORM_ZOOKEEPER_PORT
+     * is used.
+     *
+     * Defaults to true.
+     */
+    public static String STORM_LOCAL_MODE_EMBEDDED_ZOOKEEPER = "storm.local.mode.embedded.zookeeper";
+
+    /**
      * The root location at which Storm stores data in ZooKeeper.
      */
     public static String STORM_ZOOKEEPER_ROOT = "storm.zookeeper.root";

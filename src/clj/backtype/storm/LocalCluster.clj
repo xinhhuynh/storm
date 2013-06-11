@@ -4,16 +4,25 @@
   (:gen-class
    :init init
    :implements [backtype.storm.ILocalCluster]
-   :constructors {[] [] [java.util.Map] []}
+   :constructors {[] [] [java.util.Map] [] [java.util.List int] []}
    :state state ))
 
 (defn -init
   ([]
-     (let [ret (mk-local-storm-cluster :daemon-conf {TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true})]
+     (let [ret (mk-local-storm-cluster :daemon-conf {TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true
+                                                     STORM-LOCAL-MODE-EMBEDDED-ZOOKEEPER true})]
        [[] ret]
        ))
   ([^Map stateMap]
-     [[] stateMap]))
+     [[] stateMap])
+  ([zk-servers zk-port]
+     (let [ret (mk-local-storm-cluster :daemon-conf {TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true
+                                                     STORM-LOCAL-MODE-EMBEDDED-ZOOKEEPER false
+                                                     STORM-ZOOKEEPER-SERVERS zk-servers
+                                                     STORM-ZOOKEEPER-PORT zk-port})]
+       [[] ret]
+     ))
+  )
 
 (defn -submitTopology [this name conf topology]
   (submit-local-topology (:nimbus (. this state))
